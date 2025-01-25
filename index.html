@@ -41,58 +41,27 @@
                 apellido
             };
             
-            const webhookURL = 'https://raw.githubusercontent.com/franmcabezas/motor/main/reservas.csv'; // Reemplaza con tu URL de GitHub
+            const webhookURL = 'http://localhost:3000/reservas'; // URL del servidor Node.js
             
             try {
-                const response = await fetch(webhookURL);
-                const csvText = await response.text();
-                const reservations = csvText.split('\n').slice(1).map(line => {
-                    const [startDate, endDate, nombre, apellido, cabana] = line.split(',');
-                    return { startDate, endDate, nombre, apellido, cabana };
-                });
-
-                const isAvailable = (startDate, endDate, cabana) => {
-                    for (const reservation of reservations) {
-                        if (reservation.cabana === cabana) {
-                            const resStartDate = new Date(reservation.startDate);
-                            const resEndDate = new Date(reservation.endDate);
-                            const reqStartDate = new Date(startDate);
-                            const reqEndDate = new Date(endDate);
-                            if ((reqStartDate >= resStartDate && reqStartDate <= resEndDate) ||
-                                (reqEndDate >= resStartDate && reqEndDate <= resEndDate) ||
-                                (reqStartDate <= resStartDate && reqEndDate >= resEndDate)) {
-                                return false;
-                            }
-                        }
-                    }
-                    return true;
-                };
-
-                let cabana = '1';
-                if (!isAvailable(startDate, endDate, '1')) {
-                    if (isAvailable(startDate, endDate, '2')) {
-                        cabana = '2';
-                    } else {
-                        document.getElementById('message').textContent = "No hay disponibilidad para las fechas seleccionadas.";
-                        document.getElementById('message').style.color = "red";
-                        return;
-                    }
-                }
-
-                const newReservation = `${startDate},${endDate},${nombre},${apellido},${cabana}\n`;
-                const updatedCsv = csvText + newReservation;
-
-                await fetch(webhookURL, {
-                    method: 'PUT',
+                const response = await fetch(webhookURL, {
+                    method: 'POST',
                     headers: {
-                        'Content-Type': 'text/plain'
+                        'Content-Type': 'application/json'
                     },
-                    body: updatedCsv
+                    body: JSON.stringify(payload)
                 });
-
-                document.getElementById('message').textContent = "Reserva realizada con éxito.";
-                document.getElementById('message').style.color = "green";
-                document.getElementById('bookingForm').reset();
+                
+                if (response.ok) {
+                    const result = await response.text();
+                    document.getElementById('message').textContent = result || "Reserva realizada con éxito.";
+                    document.getElementById('message').style.color = "green";
+                    document.getElementById('bookingForm').reset();
+                } else {
+                    const errorResult = await response.text();
+                    document.getElementById('message').textContent = errorResult || "Ocurrió un error al realizar la reserva.";
+                    document.getElementById('message').style.color = "red";
+                }
             } catch (error) {
                 document.getElementById('message').textContent = "Error de conexión. Por favor, inténtelo más tarde.";
                 document.getElementById('message').style.color = "red";
