@@ -1,0 +1,14 @@
+{
+  "name": "reservas-online",
+  "version": "1.0.0",
+  "description": "Motor de reservas online",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.17.1"
+  },
+  "author": "",
+  "license": "ISC"
+}
