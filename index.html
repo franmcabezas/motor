@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Motor de Reservas</title>
+</head>
+<body>
+    <h1>Reserva Online</h1>
+    <form id="bookingForm">
+        <label for="startDate">Fecha de Inicio:</label>
+        <input type="date" id="startDate" name="startDate" required><br><br>
+        
+        <label for="endDate">Fecha de Fin:</label>
+        <input type="date" id="endDate" name="endDate" required><br><br>
+        
+        <label for="nombre">Nombre:</label>
+        <input type="text" id="nombre" name="nombre" required><br><br>
+        
+        <label for="apellido">Apellido:</label>
+        <input type="text" id="apellido" name="apellido" required><br><br>
+        
+        <button type="submit">Reservar</button>
+    </form>
+    
+    <p id="message"></p>
+    
+    <script>
+        document.getElementById('bookingForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const nombre = document.getElementById('nombre').value;
+            const apellido = document.getElementById('apellido').value;
+            
+            const payload = {
+                startDate,
+                endDate,
+                nombre,
+                apellido
+            };
+            
+            const query = new URLSearchParams(payload).toString();
+            const webhookURL = 'https://script.google.com/macros/s/AKfycbywuT5a8IrGehTyTqm13XwwKsxnetqH9JDPx_H4u4M1ctYCaLdP5Ox4NdXTBb3w08yy/exec'; // Reemplaza con tu URL de webhook
+            
+            try {
+                const response = await fetch(`${webhookURL}?${query}`, {
+                    method: 'POST',
+                    headers: {
+                        "Content-Type": "text/plain;charset=utf-8",
+                    },
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    document.getElementById('message').textContent = result.message || "Reserva realizada con éxito.";
+                    document.getElementById('message').style.color = "green";
+                    document.getElementById('bookingForm').reset();
+                } else {
+                    const errorResult = await response.json();
+                    document.getElementById('message').textContent = errorResult.message || "Ocurrió un error al realizar la reserva.";
+                    document.getElementById('message').style.color = "red";
+                }
+            } catch (error) {
+                document.getElementById('message').textContent = "Error de conexión. Por favor, inténtelo más tarde.";
+                document.getElementById('message').style.color = "red";
+                console.error("Error:", error);
+            }
+        });
+    </script>
+</body>
+</html>
