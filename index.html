@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -42,27 +41,58 @@
                 apellido
             };
             
-            const query = new URLSearchParams(payload).toString();
-            const webhookURL = 'https://script.google.com/macros/s/AKfycbywuT5a8IrGehTyTqm13XwwKsxnetqH9JDPx_H4u4M1ctYCaLdP5Ox4NdXTBb3w08yy/exec'; // Reemplaza con tu URL de webhook
+            const webhookURL = 'https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPOSITORY_NAME/main/reservas.csv'; // Reemplaza con tu URL de GitHub
             
             try {
-                const response = await fetch(`${webhookURL}?${query}`, {
-                    method: 'POST',
-                    headers: {
-                        "Content-Type": "text/plain;charset=utf-8",
-                    },
+                const response = await fetch(webhookURL);
+                const csvText = await response.text();
+                const reservations = csvText.split('\n').slice(1).map(line => {
+                    const [startDate, endDate, nombre, apellido, cabana] = line.split(',');
+                    return { startDate, endDate, nombre, apellido, cabana };
                 });
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    document.getElementById('message').textContent = result.message || "Reserva realizada con éxito.";
-                    document.getElementById('message').style.color = "green";
-                    document.getElementById('bookingForm').reset();
-                } else {
-                    const errorResult = await response.json();
-                    document.getElementById('message').textContent = errorResult.message || "Ocurrió un error al realizar la reserva.";
-                    document.getElementById('message').style.color = "red";
+
+                const isAvailable = (startDate, endDate, cabana) => {
+                    for (const reservation of reservations) {
+                        if (reservation.cabana === cabana) {
+                            const resStartDate = new Date(reservation.startDate);
+                            const resEndDate = new Date(reservation.endDate);
+                            const reqStartDate = new Date(startDate);
+                            const reqEndDate = new Date(endDate);
+                            if ((reqStartDate >= resStartDate && reqStartDate <= resEndDate) ||
+                                (reqEndDate >= resStartDate && reqEndDate <= resEndDate) ||
+                                (reqStartDate <= resStartDate && reqEndDate >= resEndDate)) {
+                                return false;
+                            }
+                        }
+                    }
+                    return true;
+                };
+
+                let cabana = '1';
+                if (!isAvailable(startDate, endDate, '1')) {
+                    if (isAvailable(startDate, endDate, '2')) {
+                        cabana = '2';
+                    } else {
+                        document.getElementById('message').textContent = "No hay disponibilidad para las fechas seleccionadas.";
+                        document.getElementById('message').style.color = "red";
+                        return;
+                    }
                 }
+
+                const newReservation = `${startDate},${endDate},${nombre},${apellido},${cabana}\n`;
+                const updatedCsv = csvText + newReservation;
+
+                await fetch(webhookURL, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    },
+                    body: updatedCsv
+                });
+
+                document.getElementById('message').textContent = "Reserva realizada con éxito.";
+                document.getElementById('message').style.color = "green";
+                document.getElementById('bookingForm').reset();
             } catch (error) {
                 document.getElementById('message').textContent = "Error de conexión. Por favor, inténtelo más tarde.";
                 document.getElementById('message').style.color = "red";
